@@ -1,0 +1,159 @@
+附录
+1.	添加高斯噪声（算术均值滤波与几何均值滤波）
+clc;clear;
+I=imread('lena.bmp');
+I=im2double(I);
+h=figure(1);
+subplot(2,2,1);
+imshow(I,[]);%自动产生适当比例的显示图像
+title('?-í?');
+%添加高斯噪声
+subplot(2,2,2);
+I_noise=double(imnoise(I,'gaussian',0,0.01));
+imshow(I_noise,[]);title('???1??éù(u=0￡?s^2=0.01)');
+%均值滤波
+subplot(2,2,3);
+I_3=fspecial('average',[3,3]);
+I_3=imfilter(I_noise,I_3);%(待处理矩阵，滤波器)
+imshow(I_3,[]);title('3*3滤波器');
+subplot(2,2,4);
+I_=exp(imfilter(log(I_noise),fspecial('average',3)));%算术均值滤波
+imshow(I_,[]);title('3*3几何均值滤波');
+2.	添加椒盐噪声（逆谐波滤波）
+clc;clear;
+I=imread('lena.bmp');
+I=im2double(I);
+figure(2);
+%显示原图
+subplot(2,2,1);
+imshow(I,[])；
+title('?-í?');
+%添加椒盐信号
+subplot(2,2,2);
+I_noise=double(imnoise(I,'salt & pepper',0.01));%salt & pepper注意中间的空格
+imshow(I_noise,[]);title('椒盐噪声');
+subplot(2,2,3);
+Q=-1.5;
+I_mean=imfilter(I_noise.^(Q+1),fspecial('average',3))./imfilter(I_noise.^Q,fspecial('average',3));
+imshow(I_mean,[]);title('Q=-1.5逆谐波滤波器');
+ subplot(2,2,4);
+Q=1.5;
+I_mean=imfilter(I_noise.^(Q+1),fspecial('average',3))./imfilter(I_noise.^Q,fspecial('average',3));
+imshow(I_mean,[]);title('Q=1.5逆谐波滤波器');
+3.	添加运动模糊的图像
+I=imread('lena.bmp');
+figure(1);
+imshow(I);
+title('lena.bm原始图像');
+imwrite(I,'lena原始图像.bmp');
+f=double(I);     
+F=fft2(f);      
+F=fftshift(F);   
+[M,N]=size(F);
+a=0.1;b=0.1;T=1;
+for u=1:M
+    for v=1:N   
+        H(u,v)=(T/(pi*(u*a+v*b)))*sin(pi*(u*a+v*b))*exp(-sqrt(-1)*pi*(u*a+v*b));
+     G(u,v)=H(u,v)*F(u,v);
+    end
+end
+G=ifftshift(G);
+g=ifft2(G);
+g=256.*g./max(max(g));
+g=uint8(real(g));
+figure(2);
+imshow(g);
+title('运动模糊化lena.bmp');
+imwrite(g,'lena运动模糊化结果.bmp');
+4.	Wiener_filter.m(题目2维纳滤波器自编版)
+I=imread('lena运动模糊+高斯噪声.bmp');
+figure(1);
+imshow(I);
+title('lena运动模糊+高斯噪声');
+imwrite(I,'lena运动模糊+高斯噪声.bmp');
+g=double(I);     
+G=fft2(g);      
+G=fftshift(G);   
+[M,N]=size(G);
+a=0.1;b=0.1;T=1;K=0.0259;
+for u=1:M
+    for v=1:N   H(u,v)=(T/(pi*(u*a+v*b)))*sin(pi*(u*a+v*b))*exp(-sqrt(-1)*pi*(u*a+v*b));
+     F(u,v)=1/H(u,v)*(abs(H(u,v)))^2/((abs(H(u,v)))^2+K)*G(u,v);
+    end
+end
+F=ifftshift(F);
+f=ifft2(F);
+f=256.*f./max(max(f));
+f=uint8(real(f));
+figure(2);
+imshow(f);
+title('维纳滤波的将结果');
+imwrite(f,'维纳滤波的结果(K=0.0259).bmp');
+
+5.	wiener_filter_k.m(题目2维纳滤波器寻找信噪比最大的K值)
+I=imread('lena运动模糊+高斯噪声.bmp');
+figure(1);
+imshow(I);
+title('lena运动模糊+高斯噪声');
+imwrite(I,'lena运动模糊+高斯噪声.bmp');
+g=double(I);     
+G=fft2(g);      
+G=fftshift(G);   
+[M,N]=size(G);
+a=0.1;b=0.1;T=1;i=1;
+format long
+for k=0.01:0.01:0.11
+    for u=1:M
+        for v=1:N    H(u,v)=(T/(pi*(u*a+v*b)))*sin(pi*(u*a+v*b))*exp(-sqrt(-1)*pi*(u*a+v*b));         F(u,v)=(1/H(u,v))*((abs(H(u,v)))^2/((abs(H(u,v)))^2+k))*G(u,v);
+        end
+    end
+    F=ifftshift(F);
+    f=ifft2(F);
+    f=256.*f./max(max(f));
+    f=uint8(real(f));
+    figure;
+    imshow(f);
+    title('维纳滤波的结果');
+    e=f-uint8(g);
+    SNR(i)=sum(sum(g.^2))/sum(sum(e.^2));
+    i=i+1;
+end
+idx=find(max(SNR))
+
+6.	wiener_filter_matlab.m(题目2维纳滤波器MATLAB版)
+I=imread('lena.bmp');
+H=fspecial('motion',50,45);
+I1=imfilter(I,H,'circular','conv');
+figure(1);
+imshow(I1);
+title('运动模糊后的lena.bmp(角度为45度)');
+imwrite(I1,'lena运动模糊（调用matlab中的函数）.bmp');
+I2=imnoise(I1,'gaussian',0,0.01);
+figure(2)
+imshow(I2);
+title('加噪并模糊的lena.bmp');
+imwrite(I2,'lena运动模糊+高斯噪声（调用matlab中的函数0.bmp');
+figure(3);
+noise=imnoise(zeros(size(I)),'gaussian',0,0.01);
+NSR=sum(noise(:).^2)/sum(im2double(I(:)).^2);
+I3=deconvwnr(I2,H,NSR);
+imshow(I3);
+title('维纳滤波的结果');
+imwrite(I3,'lena维纳滤波的结果（调用MATLAB中的函数）.bmp');
+7.	yueshuzuixiaercheng_filter_matlab.m
+I=imread('lena.bmp');
+h=fspecial('motion',50,45);
+I1=imfilter(I,h,'circular','conv');
+I2=imnoise(I1,'gaussian',0,0.01);
+figure(1);
+imshow(I2);
+title('lena运动模糊+高斯噪声');
+imwrite(I2,'lena运动模糊+高斯噪声（MATLAB版）.bmp');
+V=0.0001;
+NoisePower=V*prod(size(I));
+[g,LAGRA]=deconvreg(I1,h,NoisePower);
+figure(2);
+imshow(g);
+title('约束最小二乘滤波的结果（MATLAB版）');
+imwrite(g,'约束最小二乘滤波的结果（MATLAB版）.bmp
+
